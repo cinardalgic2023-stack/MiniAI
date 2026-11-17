@@ -4,7 +4,7 @@ import os
 
 app = Flask(__name__)
 
-API_KEY = os.getenv("OPENROUTER_API_KEY")
+API_KEY = "".join((os.getenv("OPENROUTER_API_KEY") or "").split())
 MODEL = "openai/gpt-4o-mini"
 
 @app.route("/")
