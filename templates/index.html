@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiniAI</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f4f6fb;
+    color: #202534;
+}
+
+header {
+    background: white;
+    padding: 18px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo {
+    background: #3867f5;
+    color: white;
+    padding: 10px;
+    border-radius: 12px;
+    font-weight: bold;
+}
+
+header h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.status {
+    color: #16a36a;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+#chat {
+    max-width: 850px;
+    margin: auto;
+    padding: 20px;
+    height: calc(100dvh - 150px);
+    overflow-y: auto;
+}
+
+.message {
+    padding: 14px 16px;
+    border-radius: 16px;
+    margin: 12px 0;
+    max-width: 85%;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.user {
+    background: #3867f5;
+    color: white;
+    margin-left: auto;
+}
+
+.ai {
+    background: white;
+    border: 1px solid #e5e7eb;
+    margin-right: auto;
+}
+
+.welcome {
+    text-align: center;
+    margin-top: 90px;
+    color: #687084;
+}
+
+.welcome h1 {
+    color: #3867f5;
+}
+
+footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    padding: 14px;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+}
+
+.input-area {
+    max-width: 850px;
+    margin: auto;
+    display: flex;
+    gap: 10px;
+}
+
+input {
+    flex: 1;
+    min-width: 0;
+    padding: 15px;
+    border: 1px solid #dce0e8;
+    border-radius: 12px;
+    outline: none;
+    font-size: 15px;
+}
+
+button {
+    border: none;
+    background: #3867f5;
+    color: white;
+    padding: 0 22px;
+    border-radius: 12px;
+    font-weight: bold;
+}
+
+button:disabled {
+    opacity: 0.5;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <div class="logo">AI</div>
+    <div>
+        <h2>MiniAI</h2>
+        <div class="status">● Assistant Ready</div>
+    </div>
+</header>
+
+<main id="chat">
+    <div class="welcome" id="welcome">
+        <h1>Merhaba!</h1>
+        <p>Ben MiniAI. Sana nasıl yardımcı olabilirim?</p>
+    </div>
+</main>
+
+<footer>
+    <div class="input-area">
+        <input id="message" placeholder="MiniAI'ye mesaj yaz...">
+        <button id="send" onclick="sendMessage()">Gönder</button>
+    </div>
+    <div style="text-align:center;color:#9ca3af;font-size:11px;padding:8px 0;">MiniAI v0.1.0 - BETA</div>
+</footer>
+
+
+<script>
+const chat = document.getElementById("chat");
+const input = document.getElementById("message");
+const send = document.getElementById("send");
+
+let messages = [
+    {
+        role: "system",
+        content: "Sen MiniAI adında yardımcı, tutarlı ve açıklayıcı bir yapay zekâ asistanısın. Türkçe konuş."
+    }
+];
+
+function addMessage(text, type) {
+    document.getElementById("welcome")?.remove();
+
+    const div = document.createElement("div");
+    div.className = "message " + type;
+    div.textContent = text;
+
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+
+    return div;
+}
+
+async function sendMessage() {
+    const text = input.value.trim();
+
+    if (!text || send.disabled) return;
+
+    addMessage(text, "user");
+
+    messages.push({
+        role: "user",
+        content: text
+    });
+
+    input.value = "";
+    send.disabled = true;
+
+    const loading = addMessage("MiniAI düşünüyor...", "ai");
+
+    try {
+        const response = await fetch("/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                messages: messages
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "API bağlantı hatası");
+        }
+
+        const answer = data.choices?.[0]?.message?.content;
+
+        if (!answer) {
+            throw new Error("Model boş yanıt döndürdü.");
+        }
+
+        loading.textContent = answer;
+
+        messages.push({
+            role: "assistant",
+            content: answer
+        });
+
+    } catch (error) {
+        loading.textContent = "Hata: " + error.message;
+    }
+
+    send.disabled = false;
+    input.focus();
+}
+
+input.addEventListener("keydown", function(event) {
+    if (event.key === "Enter") {
+        sendMessage();
+    }
+});
+</script>
+
+</body>
+</html>
