@@ -16,23 +16,35 @@ def chat():
     if not API_KEY:
         return jsonify({"error": "API anahtarı ayarlanmamış."}), 500
 
-    data = request.json
+    data = request.json or {}
     messages = data.get("messages", [])
 
-    response = requests.post(
-        "https://openrouter.ai/api/v1/chat/completions",
-        headers={
-            "Authorization": f"Bearer {API_KEY}",
-            "Content-Type": "application/json"
-        },
-        json={
-            "model": MODEL,
-            "messages": messages
-        },
-        timeout=120
-    )
+    try:
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": MODEL,
+                "messages": messages
+            },
+            timeout=120
+        )
 
-    return jsonify(response.json()), response.status_code
+        try:
+            result = response.json()
+        except ValueError:
+            return jsonify({"error": "API geçerli JSON yanıtı döndürmedi."}), 502
+
+        return jsonify(result), response.status_code
+
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "API zaman aşımına uğradı."}), 504
+
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": "Bağlantı hatası: " + str(e)}), 502
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=False)

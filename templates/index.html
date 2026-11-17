@@ -224,7 +224,8 @@ async function sendMessage() {
             content: answer
         });
 
-    } catch (error) {
+    } loading.textContent = "Hata: " + (error?.message || JSON.stringify(error));0
+catch (error) {
         loading.textContent = "Hata: " + error.message;
     }
 
