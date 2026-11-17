@@ -183,11 +183,7 @@ async function sendMessage() {
     if (!text || send.disabled) return;
 
     addMessage(text, "user");
-
-    messages.push({
-        role: "user",
-        content: text
-    });
+    messages.push({ role: "user", content: text });
 
     input.value = "";
     send.disabled = true;
@@ -197,18 +193,23 @@ async function sendMessage() {
     try {
         const response = await fetch("/chat", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                messages: messages
-            })
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ messages: messages })
         });
 
-        const data = await response.json();
+        let data;
+        try {
+            data = await response.json();
+        } catch {
+            throw new Error("Sunucudan geçersiz yanıt geldi.");
+        }
 
         if (!response.ok) {
-            throw new Error(data.error || "API bağlantı hatası");
+            const apiError = data?.error;
+            const detail = typeof apiError === "string"
+                ? apiError
+                : apiError?.message || data?.message || JSON.stringify(data);
+            throw new Error(detail);
         }
 
         const answer = data.choices?.[0]?.message?.content;
@@ -218,20 +219,14 @@ async function sendMessage() {
         }
 
         loading.textContent = answer;
+        messages.push({ role: "assistant", content: answer });
 
-        messages.push({
-            role: "assistant",
-            content: answer
-        });
-
-    } 0
-loading.textContent = "Hata: " + (error?.message || JSON.stringify(error));0
-catch (error) {
-        loading.textContent = "Hata: " + error.message;
+    } catch (error) {
+        loading.textContent = "Hata: " + (error?.message || String(error));
+    } finally {
+        send.disabled = false;
+        input.focus();
     }
-
-    send.disabled = false;
-    input.focus();
 }
 
 input.addEventListener("keydown", function(event) {
